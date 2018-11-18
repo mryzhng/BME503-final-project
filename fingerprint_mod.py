@@ -57,6 +57,7 @@ def get_2D_peaks(arr2D, plot=False, amp_min=10):
         ax.imshow(arr2D)
         ax.scatter(time_idx, frequency_idx)
         ax.set_xlabel('Time')
+        ax.xlim(0, max(frequency_idx))
         ax.set_ylabel('Frequency')
         ax.set_title("Spectrogram")
         plt.gca().invert_yaxis()
