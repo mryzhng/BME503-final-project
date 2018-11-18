@@ -56,6 +56,7 @@ def createSynapse(gr1, gr2):
     wmax = 2*.8
     Apre = 0.01
     Apost = -Apre*taupre/taupost*1.05
+    heb = 1
     
     Synp = Synapses(gr1, gr2, clock=Clock(defaultclock.dt),method='euler',model='''
             	w : 1
@@ -66,14 +67,15 @@ def createSynapse(gr1, gr2):
                 wmax : 1
                 Apre : 1
                 Apost : 1
+                heb : 1
             	''',
     		on_pre='''
     		z += w
-    		apre += Apre
-                 	w = clip(w+apost, 0, wmax)
+    		apre += Apre*(heb) - Apre*(!heb)
+            w = clip(w+apost, 0, wmax)
     		''',
     		on_post='''
-    		apost += Apost
+    		apost += Apost*(heb) - Apost*(!heb)
     		w = clip(w+apre, 0, wmax)
     		''')
     return Synp
@@ -199,6 +201,9 @@ legend([str(i) for i in range(len(Img))])
 
 
 ###HERE BE PSEUDO/UNTESTED CODE###
+
+#For training can do something similar to linked paper
+#Use heb = 1 for linked into expected, heb = 0 otherwise
 def train(inNet, duration, trainingImgs, trainingClass, epoch):
     for k in range(epoch):
         for l in range(len(trainingClass))
