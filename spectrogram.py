@@ -10,8 +10,8 @@ from operator import itemgetter
 from scipy import signal
 from scipy.io import wavfile
 
-samplingFrequency, signalData = wavfile.read('zhang_theoffice.wav')
-#signalData = signalData[:, 0]
+samplingFrequency, signalData = wavfile.read('blurred_lines_short.wav')
+signalData = signalData[:, 0]
 
 arr2D = mlab.specgram(
         signalData,
@@ -71,7 +71,12 @@ frequencies, times = zip(*local_maxima)
 plt.figure(2)
 plt.clf()
 plt.scatter(times,frequencies)
+
 plt.figure(3)
+plt.clf()
+plt.scatter(frequencies,times)
+
+plt.figure(4)
 plt.clf()
 plt.plot(local_maxima,'ko')
 plt.ylim(0,200)
