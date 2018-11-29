@@ -10,8 +10,8 @@ from operator import itemgetter
 from scipy import signal
 from scipy.io import wavfile
 
-samplingFrequency, signalData = wavfile.read('zhang_theoffice.wav')
-#signalData = signalData[:, 0]
+samplingFrequency, signalData = wavfile.read('blurred_lines_short.wav')
+signalData = signalData[:, 0]
 
 arr2D = mlab.specgram(
         signalData,
@@ -57,7 +57,7 @@ def get_2D_peaks(arr2D, plot=False, amp_min=10):
         ax.imshow(arr2D)
         ax.scatter(time_idx, frequency_idx)
         ax.set_xlabel('Time')
-        ax.xlim(0, max(frequency_idx))
+        #ax.xlim(0, max(frequency_idx))
         ax.set_ylabel('Frequency')
         ax.set_title("Spectrogram")
         plt.gca().invert_yaxis()
@@ -66,6 +66,21 @@ def get_2D_peaks(arr2D, plot=False, amp_min=10):
     return zip(frequency_idx, time_idx)
 
 local_maxima = get_2D_peaks(arr2D, plot=True, amp_min=10)
+
+frequencies, times = zip(*local_maxima)
+plt.figure(2)
+plt.clf()
+plt.scatter(times,frequencies)
+
+plt.figure(3)
+plt.clf()
+plt.scatter(frequencies,times)
+
+plt.figure(4)
+plt.clf()
+plt.plot(local_maxima,'ko')
+plt.ylim(0,200)
+
 
 #plt.figure(1)
 #plt.clf()
