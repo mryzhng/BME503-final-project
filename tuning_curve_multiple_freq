@@ -159,7 +159,7 @@ smG4 = SpikeMonitor(nG4)
 run(100*ms,report='text') # duration of stimulation with frequency inputs
 
 
-## ----------
+## -------------
 
 
 # edited sensory neuron group
