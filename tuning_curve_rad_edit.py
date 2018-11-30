@@ -1,22 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 """
-Created on Fri Nov 16 19:12:21 2018
-
-@author: Mary
-"""
-
-#!/usr/bin/env python2
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Nov 15 23:28:33 2018
-
-@author: Jay
-"""
-#!/usr/bin/env python2
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Nov 27 20:06:36 2018
+Created on Mon Nov 26 21:16:15 2018
 
 @author: talafakhoury
 """
@@ -28,33 +13,23 @@ Created on Tue Nov 27 20:06:36 2018
 # code currently modulates input current to 
 from brian2 import *
 import matplotlib.pyplot as plt
-# %matplotlib qt
 
 # input freq
 inputfreq = array([240, 240, 400])
 
 # tuning curve function
 def neuron_tuning(s,fpref):
-    g=5 # maximum firing rate at prefered frequency
-    # playing with g changes the magnitude of the input current into the neuron. When g is bigger than 10, the neurons fire A LOT
-    # so we might want to play around with these values to see what it optimal for our system
-    at= 0.7
+    g=30 # maximum firing rate at prefered frequency
+    at= 0.8
     lengthsi=size(s) # s is the x vector or different frequency values in a range going from -p 
     current=0.0*linspace(-pi,pi,lengthsi) # initialize dummy array to replace with firing value = used as current input
     for i in range(0,lengthsi):
-       if (cos(s[i]-fpref) > at and abs(s[i]-fpref)<pi): # sets the condition for non 0 inputs 
-           # has to be set at > at to make sure we get a perfect upper half of a sine wave
-           current[i]=g/(1-at)*(cos(s[i]-fpref)-at) # cos(s-spref) should yield cos(0)=1 max value when s = spref
+       if cos(s[i]-fpref) > at:
+           current[i]=g*(cos(s[i]-fpref)-at) # cos(s-spref) should yield cos(0)=1 max value when s = spref
        else:
            current[i]=0
     return current
 
-def freq2angle(freq, fmin, fmax): # give out radian anlge for frequency, which we can keep because it scales everything to -pi to pi 
-    # gotta double check the function and make sure it is exactly doing what it is supposed to do 
-    frange = fmax - fmin
-    fdiff = freq - fmin
-    fradian = (fdiff/frange)*2*pi
-    return fradian
 
 # Izhikevich LTS neurons
 a = 0.02
@@ -123,22 +98,22 @@ nG4.fchar = 392.0
 
 
 for i in range (0, inputfreq.size):
-    nA3.I = nA3.I + neuron_tuning(freq2angle(linspace(inputfreq[i],inputfreq[i],1),220,440),freq2angle(nA3.fchar,220,440))
-    nB3.I = nB3.I + neuron_tuning(freq2angle(linspace(inputfreq[i],inputfreq[i],1),220,440),freq2angle(nB3.fchar,220,440))
-    nC4.I = nC4.I + neuron_tuning(freq2angle(linspace(inputfreq[i],inputfreq[i],1),220,440),freq2angle(nC4.fchar,220,440))
-    nD4.I = nD4.I + neuron_tuning(freq2angle(linspace(inputfreq[i],inputfreq[i],1),220,440),freq2angle(nD4.fchar,220,440))
-    nE4.I = nE4.I + neuron_tuning(freq2angle(linspace(inputfreq[i],inputfreq[i],1),220,440),freq2angle(nE4.fchar,220,440))
-    nF4.I = nF4.I + neuron_tuning(freq2angle(linspace(inputfreq[i],inputfreq[i],1),220,440),freq2angle(nF4.fchar,220,440))
-    nG4.I = nG4.I + neuron_tuning(freq2angle(linspace(inputfreq[i],inputfreq[i],1),220,440),freq2angle(nG4.fchar,220,440))
+    nA3.I = nA3.I + neuron_tuning((linspace(inputfreq[i],inputfreq[i],1),220,440),(nA3.fchar,220,440))
+    nB3.I = nB3.I + neuron_tuning((linspace(inputfreq[i],inputfreq[i],1),220,440),(nB3.fchar,220,440))
+    nC4.I = nC4.I + neuron_tuning((linspace(inputfreq[i],inputfreq[i],1),220,440),(nC4.fchar,220,440))
+    nD4.I = nD4.I + neuron_tuning((linspace(inputfreq[i],inputfreq[i],1),220,440),(nD4.fchar,220,440))
+    nE4.I = nE4.I + neuron_tuning((linspace(inputfreq[i],inputfreq[i],1),220,440),(nE4.fchar,220,440))
+    nF4.I = nF4.I + neuron_tuning((linspace(inputfreq[i],inputfreq[i],1),220,440),(nF4.fchar,220,440))
+    nG4.I = nG4.I + neuron_tuning((linspace(inputfreq[i],inputfreq[i],1),220,440),(nG4.fchar,220,440))
 
 si=np.linspace(200,500,1000) # range of frequencies we are testing the neurons to
-curveA3=neuron_tuning(freq2angle(si,220,440),freq2angle(nA3.fchar,220,440))
-curveB3=neuron_tuning(freq2angle(si,220,440),freq2angle(nB3.fchar,220,440))
-curveC4=neuron_tuning(freq2angle(si,220,440),freq2angle(nC4.fchar,220,440))
-curveD4=neuron_tuning(freq2angle(si,220,440),freq2angle(nD4.fchar,220,440))
-curveE4=neuron_tuning(freq2angle(si,220,440),freq2angle(nE4.fchar,220,440))
-curveF4=neuron_tuning(freq2angle(si,220,440),freq2angle(nF4.fchar,220,440))
-curveG4=neuron_tuning(freq2angle(si,220,440),freq2angle(nG4.fchar,220,440))
+curveA3=neuron_tuning((si,220,440),(nA3.fchar,220,440))
+curveB3=neuron_tuning((si,220,440),(nB3.fchar,220,440))
+curveC4=neuron_tuning((si,220,440),(nC4.fchar,220,440))
+curveD4=neuron_tuning((si,220,440),(nD4.fchar,220,440))
+curveE4=neuron_tuning((si,220,440),(nE4.fchar,220,440))
+curveF4=neuron_tuning((si,220,440),(nF4.fchar,220,440))
+curveG4=neuron_tuning((si,220,440),(nG4.fchar,220,440))
 
 # tuning curves
 figure(1)
@@ -169,7 +144,7 @@ smE4 = SpikeMonitor(nE4)
 smF4 = SpikeMonitor(nF4)
 smG4 = SpikeMonitor(nG4)
 
-run(500*ms,report='text')
+run(100*ms,report='text')
 
 figure(2)
 clf()
