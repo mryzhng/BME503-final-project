@@ -24,7 +24,7 @@ img_rows, img_cols = 28, 28
 (x_train, y_train), (x_test, y_test) = mnist.load_data()
 
 pixels=x_train[1,:]
-pixels=pixels.reshape((28,28))
+pixels=pixels.reshape((img_rows,img_cols))
 plt.imshow(pixels,cmap='gray')
 plt.show()
 
@@ -49,7 +49,12 @@ print(x_test.shape[0], 'test samples')
 y_train = keras.utils.to_categorical(y_train, num_classes)
 y_test = keras.utils.to_categorical(y_test, num_classes)
 
+
 model = Sequential()
+
+###############################
+######      DEFAULT      ######
+###############################
 model.add(Conv2D(32, kernel_size=(3, 3),
                  activation='relu',
                  input_shape=input_shape))
@@ -60,6 +65,21 @@ model.add(Flatten())
 model.add(Dense(128, activation='relu'))
 model.add(Dropout(0.5))
 model.add(Dense(num_classes, activation='softmax'))
+###############################
+#####      FULL CONN      #####
+###############################
+#N = img_rows*img_cols
+#model.add(Dense((img_rows, img_cols), input_shape=input_shape))
+#model.add(Dense(N, activation='relu'))
+#model.add(Dense(num_classes, activation='softmax'))
+###############################
+#####    Horz Pool->FC   ######
+###############################
+#N = 3
+#model.add(Dense((img_rows, img_cols), input_shape=input_shape))
+#model.add(MaxPooling2D(pool_size(N,1)))
+#model.add(Dense(num_classes, activation='softmax'))
+
 
 model.compile(loss=keras.losses.categorical_crossentropy,
               optimizer=keras.optimizers.Adadelta(),

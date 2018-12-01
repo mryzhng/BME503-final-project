@@ -156,6 +156,24 @@ def convConnect(gr1, gr2, imgsize, width, height):
     
     return syn
 
+def ImgPool(img, width, height):
+    x = 0
+    y = 0
+    outImg = []
+    while y < len(img):
+        outImg.append([])
+        while x < len(img[1]):
+            subL = []
+            for i in range(y,y+height):
+                if(i < len(img)):
+                    for j in range(x,x+width):
+                        if(j < len(img[1])):
+                            subL.append(img[i][j])
+            outImg[-1].append(sum(subL)*1.0/len(subL))
+            x += width
+        x = 0
+        y += height
+    return outImg
     
 ##############################################################################
 ##############################################################################
@@ -204,6 +222,7 @@ legend([str(i) for i in range(len(Img))])
 
 #For training can do something similar to linked paper
 #Use heb = 1 for linked into expected, heb = 0 otherwise
+#Can access connections using conn.i and conn.j
 def train(inNet, duration, trainingImgs, trainingClass, epoch):
     for k in range(epoch):
         for l in range(len(trainingClass))
