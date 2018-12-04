@@ -140,6 +140,7 @@ for f in range (0,len(songfreq[0])):
     #    subplot(order,order,n+1)
     #    plot(SN.t/ms, SN.I[n])   
     plot(SPM.t/ms, SPM.i, 'k.')
+    ylim((-10, N+10)) 
 
 
 
