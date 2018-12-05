@@ -1,6 +1,28 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 """
+Created on Wed Dec  5 13:35:29 2018
+
+@author: talafakhoury
+"""
+## FRONT END CODEEE
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#!/usr/bin/env python2
+# -*- coding: utf-8 -*-
+"""
 Created on Tue Nov 27 20:06:36 2018
 
 @author: talafakhoury
@@ -21,8 +43,14 @@ from brian2 import *
 import matplotlib.pyplot as plt
 import random
 import numpy as np   
-
 # %matplotlib qt
+
+
+
+## SONGG INPUT (where 0/1 by time point matrix goes in)
+## Simulation ------------------------------
+songfreq = np.random.randint(20,20000, size=(6,5)) # input frequencies to the song
+#inputfreq = array([460, 2055, 9200, 15512, 16730, 19788])
 
 ## Initialize variables for front end sensory system
 
@@ -95,14 +123,12 @@ sensory_neurons.u = c*b
 sensory_neurons.fchar = tuning_frequencies
 
 
-## Simulation ------------------------------
-songfreq = np.random.randint(20,20000, size=(6,5)) # input frequencies to the song
-#inputfreq = array([460, 2055, 9200, 15512, 16730, 19788])
-
-
 for f in range (0,len(songfreq[0])):
     plt.figure()
     inputfreq = songfreq.T[f]
+    ## extract frequency infoirmation from 0/1 input array
+    
+    
     for i in range (0, len(songfreq)): # outputting 
         for n in range (0, N):
             sensory_neurons.I[n] = sensory_neurons.I[n] + neuron_tuning(f2rad(linspace(inputfreq[i],inputfreq[i],1),220,440),f2rad(sensory_neurons.fchar[n],220,440))
@@ -118,7 +144,11 @@ for f in range (0,len(songfreq[0])):
     SN = StateMonitor(sensory_neurons, ('v','I'), record=True) # state monitor for action potential tracking
     SPM = SpikeMonitor(sensory_neurons) # recording spikes
     
-    run(500*ms,report='text') # duration of stimulation with frequency inputs equal to average length of tone in songs
+    run(100*ms,report='text') # duration of stimulation with frequency inputs equal to average length of tone in songs
+    # to be changed according to time resolution in song
+    
+    
+    
     
     ## Plotting --------------------------------
     
@@ -137,15 +167,14 @@ for f in range (0,len(songfreq[0])):
     plot(SPM.t/ms, SPM.i, 'k.')
     ylim((-10, N+10)) 
 
-
-
-s = np.linspace(20,20000,10000)
-figure(1)
-for n in range (0, N):
-   curve = neuron_tuning(f2rad(s,20,20000),f2rad(sensory_neurons.fchar[n],20,20000))
-   hold(True)
-   plot(s,curve)
-   ylim((-1, 7))
+## For plotting tuning curves - not useful if N>50
+#s = np.linspace(20,20000,10000)
+#figure(1)
+#for n in range (0, N):
+#   curve = neuron_tuning(f2rad(s,20,20000),f2rad(sensory_neurons.fchar[n],20,20000))
+#   hold(True)
+#   plot(s,curve)
+#   ylim((-1, 7))
     
     
     
