@@ -209,7 +209,10 @@ for t in range(0,len(song_times)):
 ## PLOTTING
 figure(1)
 clf()
-plot(SPM.t/ms, SPM.i, 'k.')
+plot(SPM.t/ms, SPM.i, 'k.') 
+##========================================================================##
+## SPM.i ==> Desired spiking output to feed into classifier/back end code ##
+##========================================================================##
 ylim((-10, N+10))
 
 ## For plotting tuning curves - NOT useful if N>50
