@@ -9,11 +9,8 @@ Created on Tue Nov 27 20:06:36 2018
 ## Tuning curve front end code
 
 # # TO DO
-# gotta edit so that this whole things works over time. We could add an entire loop 
-# but maybe there is a matrix way of doing this so that it's faster?
-
-# review transformation to radians make sure it is doing what it is supposed to do
-# verify role of fmin and fmax and optimal values !!! <--- 
+# create freq time matrix with ones or zeros across a range of 20-20000Hz potential frequencies
+# transform matrix 
 
 
 # code currently modulates input current to 
@@ -26,7 +23,7 @@ import numpy as np
 
 ## Initialize variables for front end sensory system
 
-N = 1000 # number of neurons to simulate
+N = 10 # number of neurons to simulate
 order = math.ceil(sqrt(N)) # for plotting purposes
 #tuning_frequencies = [220.0 , 246.9 , 261.6 , 293.7 , 329.6 , 349.2 , 392.0] 
 tuning_frequencies = linspace(20,20000,N) # prefered frequencies for neuron group 
@@ -72,6 +69,7 @@ def f2rad(freq, fmin, fmax): # give out radian anlge for frequency, which we can
 neuron_eqs = '''
 fchar : 1
 I : 1
+input_val :1
 
 # Izhikevich model
 dv/dt = (0.04*(v**2) + 5*v + 140 - u + I + g*(Esyn-v))/ms : 1
@@ -80,6 +78,7 @@ du/dt = a*(b*v - u)/ms : 1
 # Alpha synapse model
 dz/dt = (-z / tau_syn)/ms : 1
 dg/dt = ((-g/tau_syn) + z)/ms : 1
+
 '''
 neuron_reset = '''
 v = c
@@ -93,6 +92,7 @@ sensory_neurons = NeuronGroup(N, neuron_eqs, clock=Clock(0.2*ms), threshold = "v
 sensory_neurons.v = c # same Izhi equations
 sensory_neurons.u = c*b
 sensory_neurons.fchar = tuning_frequencies
+sensory_neurons.input_val = 0
 
 
 ## Simulation ------------------------------
@@ -105,7 +105,9 @@ for f in range (0,len(songfreq[0])):
     inputfreq = songfreq.T[f]
     for i in range (0, len(songfreq)): # outputting 
         for n in range (0, N):
-            sensory_neurons.I[n] = sensory_neurons.I[n] + neuron_tuning(f2rad(linspace(inputfreq[i],inputfreq[i],1),220,440),f2rad(sensory_neurons.fchar[n],220,440))
+            input_val = neuron_tuning(f2rad(linspace(inputfreq[i],inputfreq[i],1),220,440),f2rad(sensory_neurons.fchar[n],220,440))
+            poisson_noise = PoissonInput(sensory_neurons,input_val,1,0.3*Hz,3)
+            sensory_neurons.I[n] = sensory_neurons.I[n] + input_val
             # loop has to output matris with size numel(frequency_inputs) x N) right now its replacing the 
             # loop ranges across the different frequency inputs and calculates the current at each neuron
             # does not however integrate the firing? Oh it only sums the current at each frequency
@@ -130,23 +132,23 @@ for f in range (0,len(songfreq[0])):
     #    subplot(order,order,n+1)
     #    plot(SN.t/ms, SN.v[n])
     #     
-    #figure(3)
-    #for n in range (0, N):
-    #    subplot(order,order,n+1)
-    #    plot(SN.t/ms, SN.I[n])   
+    figure(3)
+    for n in range (0, N):
+        subplot(order,order,n+1)
+        plot(SN.t/ms, SN.I[n])   
     plot(SPM.t/ms, SPM.i, 'k.')
     ylim((-10, N+10)) 
 
 
 
-s = np.linspace(20,20000,10000)
-figure(1)
-for n in range (0, N):
-   curve = neuron_tuning(f2rad(s,20,20000),f2rad(sensory_neurons.fchar[n],20,20000))
-   hold(True)
-   plot(s,curve)
-   ylim((-1, 7))
-    
+#s = np.linspace(20,20000,10000)
+#figure(1)
+#for n in range (0, N):
+#   curve = neuron_tuning(f2rad(s,20,20000),f2rad(sensory_neurons.fchar[n],20,20000))
+#   hold(True)
+#   plot(s,curve)
+#   ylim((-1, 7))
+#    
     
     
     
