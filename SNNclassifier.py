@@ -11,8 +11,20 @@ from brian2 import *
 import numpy as np
 import random
 import matplotlib
+import os, pickle
+import skimage.measure
+
+
+pool = (25, 20)
+epochs = 5
+
+
 
 defaultclock.dt=0.1*ms
+taupre = taupost = 20*ms
+wmax = 2*.8
+Apre = 0.01
+Apost = -Apre*taupre/taupost*1.05
 
 def createGroup(n, toggleIn, inFun = None):
     if(inFun is None):
@@ -51,51 +63,57 @@ def createGroup(n, toggleIn, inFun = None):
     
     return gr
 
-def createSynapse(gr1, gr2):
-    taupre = taupost = 20*ms
-    wmax = 2*.8
-    Apre = 0.01
-    Apost = -Apre*taupre/taupost*1.05
-    heb = 1
+def fullyConnect(gr1, gr2):
     
-    Synp = Synapses(gr1, gr2, clock=Clock(defaultclock.dt),method='euler',model='''
+    syn = Synapses(gr1, gr2, clock=gr1.clock,method='euler',model='''
             	w : 1
             	dapre/dt = -apre/taupre : 1 (clock-driven) 
             	dapost/dt = -apost/taupost : 1 (clock-driven)
-                taupre : 1/Hz
-                taupost : 1/Hz
-                wmax : 1
-                Apre : 1
-                Apost : 1
                 heb : 1
+                stdp : 1
             	''',
     		on_pre='''
     		z += w
-    		apre += Apre*(heb) - Apre*(!heb)
+    		apre += ((Apre)*(heb) - Apre*(not heb))*(stdp)
             w = clip(w+apost, 0, wmax)
     		''',
     		on_post='''
-    		apost += Apost*(heb) - Apost*(!heb)
+    		apost += ((Apost)*(heb) - Apost*(not heb))*(stdp)
     		w = clip(w+apre, 0, wmax)
     		''')
-    return Synp
 
-def fullyConnect(gr1, gr2):
-    syn = createSynapse(gr1, gr2)
     
     iv = np.repeat(np.arange(gr1.N), gr2.N)
-    j0 = np.arange(gr2.N)
-    jv = j0
-    for _ in range(gr1.N-1):
-        jv = np.append(jv, j0) 
+    jv = np.tile(np.arange(gr2.N), gr1.N)
     syn.connect(i = iv, j = jv)
+    
+    syn.heb = 1
+    syn.stdp = 1
+    syn.w = .1
     
     return syn
 
 
 def convConnect(gr1, gr2, imgsize, width, height):
-    syn = createSynapse(gr1, gr2)
     
+    ##UNUSED##
+
+    syn = Synapses(gr1, gr2, clock=gr1.clock,method='euler',model='''
+            	w : 1
+            	dapre/dt = -apre/taupre : 1 (clock-driven) 
+            	dapost/dt = -apost/taupost : 1 (clock-driven)
+                heb : 1
+                stdp : 1
+            	''',
+    		on_pre='''
+    		z += w
+    		apre += (Apre)#*(heb) - Apre*(not heb))*(stdp)
+            w = clip(w+apost, 0, wmax)
+    		''',
+    		on_post='''
+    		apost += (Apost)#*(heb) - Apost*(not heb))*(stdp)
+    		w = clip(w+apre, 0, wmax)
+    		''')
     iv = []
     jv = []
     
@@ -154,92 +172,143 @@ def convConnect(gr1, gr2, imgsize, width, height):
     
     syn.connect(i = iv, j = jv)
     
+    syn.heb = 1
+    syn.stdp = 1
+    syn.w = .5
+    
+    
     return syn
 
-def ImgPool(img, width, height):
-    x = 0
-    y = 0
-    outImg = []
-    while y < len(img):
-        outImg.append([])
-        while x < len(img[1]):
-            subL = []
-            for i in range(y,y+height):
-                if(i < len(img)):
-                    for j in range(x,x+width):
-                        if(j < len(img[1])):
-                            subL.append(img[i][j])
-            outImg[-1].append(sum(subL)*1.0/len(subL))
-            x += width
-        x = 0
-        y += height
-    return outImg
-    
-##############################################################################
-##############################################################################
-##############################################################################
-random.seed(100)
-    
-imgsize = [3, 3]
-Img = np.array([random.random() for _ in range(imgsize[1]*imgsize[0])])
-Img2 = Img.reshape(imgsize)
-figure(1)
-imshow(Img2, cmap='gray')    
-
-
-inLayer = createGroup(len(Img), 100, Img)
-hLayer1 = createGroup(len(Img), 0)
-outLayer = createGroup(9, 100)
-#conn = fullyConnect(g1, g2)
-#conn = lineConnect(g1, g2, imgsize, 3)
-conn1 = convConnect(inLayer, hLayer1, imgsize, 3, 1)
-conn2 = fullyConnect(hLayer1, outLayer)
-
-net = Network(inLayer, hLayer1, outLayer, conn1, conn2)
-##############################################################################
-##############################################################################
-##############################################################################
-
-M = StateMonitor(inLayer, ('v'), record=True)
-M2 = StateMonitor(hLayer1, ('v', 'g'), record=True)
-S = SpikeMonitor(inLayer)
-S2 = SpikeMonitor(hLayer1)
-Net.run(10*ms)
-
-figure(2)
-for i in range(len(Img)):
-    plot(M.t/ms, M.v[i])
-legend([str(i) for i in range(len(Img))])
-
-figure(3)
-for i in range(len(Img)):
-    plot(M2.t/ms, M2.v[i])
-legend([str(i) for i in range(len(Img))])
-
-
-
-###HERE BE PSEUDO/UNTESTED CODE###
-
-#For training can do something similar to linked paper
-#Use heb = 1 for linked into expected, heb = 0 otherwise
-#Can access connections using conn.i and conn.j
-def train(inNet, duration, trainingImgs, trainingClass, epoch):
+def train(inNet, duration, trainingImgs, trainingClass, epoch = None):
+    if(epoch is None):
+        epoch = 1
+    inNet.set_states({"synapses":{"stdp":np.ones(inNet.get_states()["synapses"]["N"])}})
+    inNet.set_states({"synapses_pre":{"stdp":np.ones(inNet.get_states()["synapses"]["N"])}})
+    inNet.set_states({"synapses_post":{"stdp":np.ones(inNet.get_states()["synapses"]["N"])}})
     for k in range(epoch):
-        for l in range(len(trainingClass))
-            inNet.inLayer.Iin = trainingImgs[l]
-            inV = np.repmat(0,len(trainingClass))
-            inV[l] = 1
-            inNet.outLayer.Iin = inV
+        for l in range(len(trainingClass)):
+            inNet.set_states({"neurongroup":{"Iin":trainingImgs[l]}})
+            ind = inNet.get_states()["synapses"]["j"]
+            ind[ind == trainingClass[l]] = -1
+            ind[ind != -1] = 0
+            ind[ind == -1] = 1
+            inNet.set_states({"synapses":{"heb":ind}})
+            inNet.set_states({"synapses_pre":{"heb":ind}})
+            inNet.set_states({"synapses_post":{"heb":ind}})
             inNet.run(duration)
-            inNet.outLayer.Iin = np.repmat(0,len(trainingClass))
+            inNet.set_states({"neurongroup":{"Iin":np.zeros(len(trainingImgs[l]))}})
             inNet.run(duration)
 
 def test(inNet, duration, testImgs, testClass):
-    #Can check compared to testclass or overall
-    #Might need way to toggle off STDP during testing?
-    Sm = SpikeMonitor(inNet.outLayer)
-    for k in range(testImgs):
-        inNet.inLayer.Iin = testImgs[k]
+    acc = []
+    inNet.set_states({"synapses":{"stdp":np.zeros(inNet.get_states()["synapses"]["N"])}})
+    inNet.set_states({"synapses_pre":{"stdp":np.zeros(inNet.get_states()["synapses"]["N"])}})
+    inNet.set_states({"synapses_post":{"stdp":np.zeros(inNet.get_states()["synapses"]["N"])}})
+    print("Pred", "Exp", sep="\t")
+    for k in range(len(testImgs)):
+        Sm = SpikeMonitor(inNet["neurongroup_1"], record=True)
+        inNet.add(Sm)
+        inNet.set_states({"neurongroup":{"Iin":testImgs[k]}})
         inNet.run(duration)
-        val = SpikeMonitor.num_spikes.index(max(SpikeMonitor.num_spikes))
+        s = array(Sm.count)
+        s = np.where(s == max(s))
+        val = []
+        for x in s:
+            for xv in x:
+                val.append(xv)
+        print(str(val), str(testClass[k]), sep="\t")
+        inNet.set_states({"neurongroup":{"Iin":np.zeros(len(testImgs[k]))}})
+        inNet.run(duration)
+        inNet.remove(Sm)
+        del Sm
         
+        if(len(val) == 1):
+            acc.append(val == testClass[k])
+    print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    return (1.0*sum(acc)/k)
+    
+    
+######################################
+#################CODE#################
+######################################
+
+x_train = []
+y_train = []
+x_test = []
+y_test = []
+
+# the data, shuffled and split between train and test sets
+os.chdir("./output/")
+dirnames = os.listdir()
+for n in dirnames:
+    fname = os.listdir(n)
+    random.shuffle(fname)
+    fname = fname[0:9]
+    for f in range(len(fname)):
+        fn = fname[f]
+        file = open(n+"/"+fn, 'rb')
+        xtmp = pickle.load(file)
+        ytmp = pickle.load(file)
+        dim = pickle.load(file)
+        file.close()
+        tmp = np.zeros(dim)
+        for i in range(len(xtmp)):
+            tmp[ytmp[i]][xtmp[i]] = 1
+        tmp = tmp.flatten()
+        if(f < len(fname)/10):
+            x_test.append(tmp)
+            y_test.append(dirnames.index(n))
+        else:
+            x_train.append(tmp)
+            y_train.append(dirnames.index(n))
+            
+x_train = np.array(x_train).astype('int')
+y_train = np.array(y_train).astype('int')
+x_test = np.array(x_test).astype('int')
+y_test = np.array(y_test).astype('int')
+
+x_tmp = []
+for x in range(len(x_train)):
+    tmp = x_train[x].reshape(dim)
+    tmp = skimage.measure.block_reduce(tmp, pool, np.average)
+    x_tmp.append(tmp.flatten())
+x_train = np.array(x_tmp)
+    
+x_tmp = []
+for x in range(len(x_test)):
+    tmp = x_test[x].reshape(dim)
+    tmp = skimage.measure.block_reduce(tmp, pool, np.average)
+    x_tmp.append(tmp.flatten())
+x_test = np.array(x_tmp)
+
+
+        
+num_classes = len(dirnames)
+num_neurons = len(x_train[0])
+
+
+inLayer = createGroup(num_neurons, 5*pool[0]*pool[1])
+outLayer = createGroup(num_classes, 0)
+conn = fullyConnect(inLayer, outLayer)
+
+net = Network()
+net.add(inLayer)
+net.add(outLayer)
+net.add(conn)
+
+accTest = []
+accTrain = []
+
+for e in range(epochs):
+    print(str(e))
+    accTest.append(test(net, 100*ms, x_test, y_test))
+    accTrain.append(test(net, 100*ms, x_train, y_train))
+    train(net, 100*ms, x_train, y_train)
+accTest.append(test(net, 100*ms, x_test, y_test))
+accTrain.append(test(net, 100*ms, x_train, y_train))
+
+os.chdir('..')
+if(not os.path.isdir("./networks")):
+    os.mkdir("./networks")
+os.chdir("./networks")
+net.store("SNN.net")
