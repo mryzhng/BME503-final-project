@@ -311,4 +311,4 @@ os.chdir('..')
 if(not os.path.isdir("./networks")):
     os.mkdir("./networks")
 os.chdir("./networks")
-net.store("SNN.net")
+net.store(filename="SNN.net")
